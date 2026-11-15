@@ -3,3 +3,4 @@ pyarrow
 matplotlib
 jupyter
 ipykernel
+scikit-learn
