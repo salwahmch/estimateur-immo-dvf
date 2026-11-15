@@ -6,3 +6,6 @@ ipykernel
 scikit-learn
 lightgbm
 joblib
+shap
+streamlit
+requests

@@ -2,6 +2,8 @@
 
 Prédire le prix de vente d'un appartement ou d'une maison en Provence-Alpes-Côte d'Azur à partir de ses caractéristiques et de sa localisation, en s'entraînant sur **toutes les ventes réellement enregistrées par l'État** entre 2021 et 2025 (données DVF).
 
+🚀 **Application en ligne :** *lien à venir*
+
 **Résultat :** sur les 82 335 ventes de 2025, jamais vues pendant l'entraînement, le modèle LightGBM estime le prix avec une **erreur médiane de 14,9 %**, et 63 % des estimations tombent à ±20 % du prix réel.
 
 ![Carte des prix au m² en PACA](figures/carte_prix_m2.png)
@@ -15,8 +17,10 @@ Prédire le prix de vente d'un appartement ou d'une maison en Provence-Alpes-Cô
 3. [Analyse exploratoire](#3-analyse-exploratoire)
 4. [Feature engineering](#4-feature-engineering)
 5. [Modélisation et résultats](#5-modélisation-et-résultats)
-6. [Limites et pistes d'amélioration](#6-limites-et-pistes-damélioration)
-7. [Reproduire le projet](#7-reproduire-le-projet)
+6. [Explicabilité avec SHAP](#6-explicabilité-avec-shap)
+7. [L'application d'estimation](#7-lapplication-destimation)
+8. [Limites et pistes d'amélioration](#8-limites-et-pistes-damélioration)
+9. [Reproduire le projet](#9-reproduire-le-projet)
 
 ---
 
@@ -97,7 +101,29 @@ Le prix des voisines est la variable la plus puissante, et aussi la plus exposé
 
 **Où le modèle se trompe :** il est plus fiable pour les appartements (14,2 %) que pour les maisons (16,6 %), dans les départements denses (Bouches-du-Rhône : 14,2 %) que ruraux (Alpes-de-Haute-Provence : 17,8 %), et pour les biens de prix moyen (13 %) que pour les extrêmes (18 %), où il tend à ramener ses estimations vers la moyenne.
 
-## 6. Limites et pistes d'amélioration
+## 6. Explicabilité avec SHAP
+
+📓 [`06_explicabilite.ipynb`](notebooks/06_explicabilite.ipynb)
+
+L'importance des variables dit *quelles* variables comptent ; **SHAP** montre *dans quel sens* elles jouent et *pourquoi* le modèle a estimé tel prix pour tel logement. Il sert à vérifier que le modèle se comporte de façon cohérente (le prix monte avec la surface et le prix du quartier, baisse en s'éloignant de la mer) et à expliquer chaque estimation dans l'application.
+
+| | |
+|---|---|
+| ![Effet des variables](figures/shap_beeswarm.png) | ![Exemple d'estimation expliquée](figures/shap_exemple_bord_de_mer.png) |
+
+## 7. L'application d'estimation
+
+📂 [`app/`](app/)
+
+Une application [Streamlit](https://streamlit.io) permet d'estimer n'importe quel logement de PACA :
+
+1. l'adresse est convertie en coordonnées GPS grâce à la **Base Adresse Nationale** ;
+2. l'application calcule les mêmes variables qu'à l'entraînement : distance à la mer, prix des 20 ventes comparables les plus proches, etc. ;
+3. le modèle LightGBM donne une estimation et une fourchette indicative ;
+4. les **valeurs SHAP** de l'estimation indiquent les facteurs qui font monter ou baisser le prix ;
+5. une carte affiche les ventes comparables.
+
+## 8. Limites et pistes d'amélioration
 
 **Limites :**
 
@@ -111,9 +137,8 @@ Le prix des voisines est la variable la plus puissante, et aussi la plus exposé
 2. Corriger le prix des voisines de **l'évolution du marché**
 3. Chercher des voisines de **surface comparable**
 4. Optimiser les hyperparamètres par **validation croisée temporelle**
-5. Expliquer les prédictions avec **SHAP** et déployer une **application d'estimation**
 
-## 7. Reproduire le projet
+## 9. Reproduire le projet
 
 ```bash
 git clone https://github.com/salwahmch/estimateur-immo-dvf.git
@@ -124,19 +149,31 @@ pip install -r requirements.txt
 python src/download_data.py     # télécharge les données DVF de PACA (environ 45 Mo)
 ```
 
-Exécuter ensuite les notebooks dans l'ordre, de `01` à `05`.
+Exécuter ensuite les notebooks dans l'ordre, de `01` à `06`, puis préparer et lancer l'application :
+
+```bash
+python src/exporter_app.py      # exporte le modèle et les ventes de référence dans app/assets/
+streamlit run app/streamlit_app.py
+```
 
 ```
 estimateur-immo-dvf/
-├── src/download_data.py      # téléchargement des données
+├── src/
+│   ├── download_data.py      # téléchargement des données
+│   └── exporter_app.py       # préparation des fichiers de l'application
 ├── notebooks/
 │   ├── 01_exploration.ipynb
 │   ├── 02_nettoyage.ipynb
 │   ├── 03_analyse_exploratoire.ipynb
 │   ├── 04_features.ipynb
-│   └── 05_modelisation.ipynb
+│   ├── 05_modelisation.ipynb
+│   └── 06_explicabilite.ipynb
+├── app/
+│   ├── streamlit_app.py      # l'application
+│   ├── estimation.py         # géocodage et calcul des variables
+│   └── assets/               # modèle et ventes de référence
 ├── figures/                  # graphiques générés par les notebooks
 └── requirements.txt
 ```
 
-**Stack :** Python, pandas, scikit-learn, LightGBM, matplotlib
+**Stack :** Python, pandas, scikit-learn, LightGBM, SHAP, Streamlit, matplotlib
